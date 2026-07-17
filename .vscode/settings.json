@@ -1,0 +1,14 @@
+{
+  "editor.tabSize": 4,
+  "files.trimTrailingWhitespace": true,
+  "files.trimFinalNewlines": false,
+  "files.insertFinalNewline": true,
+  "cSpell.words": [
+    "apikey",
+    "shoko",
+    "webui",
+    "cshtml",
+    "anidb",
+    "tmdb"
+  ]
+}

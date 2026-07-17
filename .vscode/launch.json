@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Shoko.CLI",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build:plugin",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/../Shoko/Shoko.Server/bin/Debug/net10.0/Shoko.CLI.dll",
+            "args": [
+              "--shutdown-enabled",
+              "--restart-enabled",
+            ],
+            "cwd": "${workspaceFolder}/../Shoko/Shoko.Server/bin/Debug/net10.0",
+            "env": {
+              "SHOKO_HOME": "${workspaceFolder}/../Shoko/Shoko.Server/bin/Data",
+              "SHOKO_PORT": "8111",
+              "THREADPOOL_MIN_THREADS": "-3",
+            },
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "integratedTerminal",
+            "stopAtEntry": false,
+            "requireExactSource": false
+        },
+    ]
+}

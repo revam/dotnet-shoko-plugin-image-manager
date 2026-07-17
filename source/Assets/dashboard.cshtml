@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Manager</title>
+<style>
+  :root {
+    --bg-main: #1a1b23;
+    --bg-panel: #21222d;
+    --border: #2d2e3a;
+    --text-primary: #e0e0e0;
+    --text-secondary: #9a9aad;
+    --accent: #5293e0;
+    --accent-hover: #3a7bc8;
+    --danger: #e05452;
+    --danger-hover: #c94442;
+    --success: #52b07e;
+    --card-bg: #282a36;
+    --input-bg: #1e1f29;
+    --hover: #313348;
+    --overlay: rgba(0,0,0,0.6);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --transition: 0.2s ease;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-main); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+  /* Layout */
+  .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex;
+    background: var(--input-bg);
+    border-radius: var(--radius-md);
+    padding: 3px;
+    border: 1px solid var(--border);
+  }
+  .mode-toggle button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 18px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: var(--transition);
+  }
+  .mode-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* Search */
+  .search-wrap { position: relative; margin-bottom: 20px; max-width: 480px; }
+  .search-wrap input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: var(--transition);
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap input::placeholder { color: var(--text-secondary); }
+
+  .search-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0; right: 0;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 50;
+    box-shadow: var(--shadow);
+    display: none;
+  }
+  .search-dropdown.open { display: block; }
+  .search-dropdown .item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .search-dropdown .item:last-child { border-bottom: none; }
+  .search-dropdown .item:hover { background: var(--hover); }
+  .search-dropdown .item .name { font-weight: 500; }
+  .search-dropdown .item .id {
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--input-bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .search-dropdown .empty, .search-dropdown .loading {
+    padding: 14px;
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 13px;
+  }
+
+  .selected-entity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .selected-entity .label { color: var(--text-secondary); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .selected-entity .value { font-weight: 600; font-size: 15px; }
+  .selected-entity .sub { color: var(--text-secondary); font-size: 12px; margin-left: auto; }
+
+  /* Episode selector */
+  .episode-select-wrap { margin-bottom: 20px; max-width: 480px; }
+  .episode-select-wrap select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* Controls row */
+  .controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .checkbox-group {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    user-select: none;
+  }
+  .checkbox-group input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 16px; height: 16px;
+    cursor: pointer;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1px;
+  }
+  .tab {
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: var(--transition);
+    margin-bottom: -2px;
+  }
+  .tab:hover { color: var(--text-primary); }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* Main content layout */
+  .content-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .grid-area { flex: 1; min-width: 0; }
+  .side-panel {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+
+  /* Image grid */
+  .image-grid {
+    display: grid;
+    gap: 16px;
+  }
+  .image-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+  .image-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .image-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+  @media (max-width: 1200px) {
+    .image-grid.cols-6 { grid-template-columns: repeat(4, 1fr); }
+    .image-grid.cols-4 { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 900px) {
+    .image-grid.cols-6, .image-grid.cols-4 { grid-template-columns: repeat(3, 1fr); }
+    .image-grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .image-grid.cols-6, .image-grid.cols-4, .image-grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .image-card {
+    position: relative;
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+    aspect-ratio: 2 / 3;
+  }
+  .image-card.backdrop { aspect-ratio: 16 / 9; }
+  .image-card.banner { aspect-ratio: 758 / 140; }
+  .image-card.logo { aspect-ratio: 2 / 1; }
+  .image-card:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: var(--shadow);
+  }
+  .image-card.selected { border-color: var(--accent); }
+  .image-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.3s;
+  }
+  .image-card.logo img { object-fit: contain; padding: 8px; background: #000; }
+  .image-card .placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--input-bg);
+    color: var(--text-secondary);
+    font-size: 24px;
+  }
+  .image-card .badges {
+    position: absolute;
+    top: 8px; left: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: none;
+  }
+  .image-card .badge-source-corner {
+    position: absolute;
+    bottom: 8px; right: 8px;
+    pointer-events: none;
+  }
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .badge-preferred { background: var(--success); color: #fff; }
+  .badge-disabled { background: var(--danger); color: #fff; }
+  .badge-source {
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+  }
+  .badge-lang {
+    background: rgba(82,147,224,0.85);
+    color: #fff;
+  }
+  .image-card .overlay-info {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    pointer-events: none;
+  }
+
+  /* Side panel */
+  .side-panel h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .side-panel .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .side-panel .info-row:last-child { border-bottom: none; }
+  .side-panel .info-label { color: var(--text-secondary); }
+  .side-panel .info-value { font-weight: 500; text-align: right; }
+  .side-panel .info-value .bool-yes { color: var(--success); }
+  .side-panel .info-value .bool-no { color: var(--danger); }
+  .side-panel .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .side-panel .hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-secondary { background: transparent; color: var(--text-primary); border: 1px solid var(--border); }
+  .btn-secondary:hover:not(:disabled) { background: var(--hover); border-color: var(--text-secondary); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover:not(:disabled) { background: var(--danger-hover); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-block { width: 100%; }
+  .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+  /* Empty states */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+  .empty-state h4 { font-size: 16px; margin-bottom: 6px; color: var(--text-primary); }
+  .empty-state p { font-size: 13px; }
+
+  /* Loading */
+  .spinner {
+    width: 24px; height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-wrap {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; padding: 40px;
+    color: var(--text-secondary);
+  }
+  .skeleton {
+    background: linear-gradient(90deg, var(--input-bg) 25%, var(--hover) 50%, var(--input-bg) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-md);
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    padding: 20px;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .modal-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow);
+    transform: translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .modal-overlay.open .modal-card { transform: translateY(0); }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h2 { font-size: 17px; font-weight: 600; }
+  .modal-close {
+    background: none; border: none; color: var(--text-secondary);
+    font-size: 22px; cursor: pointer; line-height: 1;
+    padding: 4px; border-radius: 4px; transition: var(--transition);
+  }
+  .modal-close:hover { color: var(--text-primary); background: var(--hover); }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Form elements */
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+  }
+  .form-group input[type="file"],
+  .form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+  }
+  .form-group input[type="file"] { padding: 8px 12px; cursor: pointer; }
+  .form-group input[type="file"]::file-selector-button {
+    background: var(--hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+  .form-group select { cursor: pointer; }
+  .form-group .checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+  .form-group .checkbox-inline input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+  /* Toast / Alert */
+  .toast-container {
+    position: fixed;
+    top: 20px; right: 20px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .toast {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-md);
+    padding: 12px 18px;
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    max-width: 360px;
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease 3.7s forwards;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toast.error { border-left-color: var(--danger); }
+  .toast.success { border-left-color: var(--success); }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes fadeOut {
+    to { opacity: 0; transform: translateX(20px); }
+  }
+
+  /* Responsive side panel */
+  @media (max-width: 1024px) {
+    .content-layout { flex-direction: column; }
+    .side-panel { width: 100%; }
+  }
+
+  /* Utility */
+  .hidden { display: none !important; }
+  .text-muted { color: var(--text-secondary); }
+  .mb-1 { margin-bottom: 8px; }
+  .mb-2 { margin-bottom: 16px; }
+
+  /* Login card */
+  .login-card {
+    max-width: 480px;
+    margin: 80px auto;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .login-card h2 { font-size: 18px; margin-bottom: 12px; }
+  .login-desc { color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
+  .login-row { display: flex; gap: 8px; }
+  .login-input {
+    flex: 1;
+    padding: 10px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+  }
+  .login-input:focus { border-color: var(--accent); }
+  .login-status { font-size: 13px; margin-top: 10px; color: var(--danger); }
+
+  /* Delete confirmation preview */
+  .delete-preview {
+    width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Login Card -->
+<div class="login-card" id="loginCard">
+  <h2>Authentication Required</h2>
+  <p class="login-desc">
+    No Shoko session found in localStorage. Enter your API key to continue.
+    You can find it in Shoko's WebUI settings or use your session token.
+  </p>
+  <div class="login-row">
+    <input type="text" id="apiKeyInput" placeholder="Enter API key..." class="login-input">
+    <button class="btn btn-primary" onclick="saveAuth()">Authenticate</button>
+  </div>
+  <div class="login-status" id="loginStatus"></div>
+</div>
+
+<div class="app" id="appContainer" style="display:none">
+  <!-- Header -->
+  <div class="header">
+    <h1>Image Manager</h1>
+    <div class="mode-toggle">
+      <button id="modeSeries" class="active">Series</button>
+      <button id="modeEpisode">Episode</button>
+    </div>
+  </div>
+
+  <!-- Series Search -->
+  <div class="search-wrap" id="seriesSearchWrap">
+    <input type="text" id="seriesSearch" placeholder="Search for a series..." autocomplete="off">
+    <div class="search-dropdown" id="seriesDropdown"></div>
+  </div>
+
+  <!-- Selected Series -->
+  <div class="selected-entity hidden" id="selectedSeries">
+    <div>
+      <div class="label">Selected Series</div>
+      <div class="value" id="seriesName">—</div>
+    </div>
+    <div class="sub" id="seriesId">—</div>
+  </div>
+
+  <!-- Episode Selector -->
+  <div class="episode-select-wrap hidden" id="episodeSelectWrap">
+    <select id="episodeSelect">
+      <option value="">Select an episode...</option>
+    </select>
+  </div>
+
+  <!-- Image Type Tabs -->
+  <div class="tabs hidden" id="imageTabs">
+    <button class="tab active" data-type="Posters">Posters</button>
+    <button class="tab" data-type="Backdrops">Backdrops</button>
+    <button class="tab" data-type="Banners">Banners</button>
+    <button class="tab" data-type="Logos">Logos</button>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-row hidden" id="controlsRow">
+    <div class="checkbox-group">
+      <label><input type="checkbox" id="showDisabled"> Show Disabled Images</label>
+      <label><input type="checkbox" id="showSource"> Show Source</label>
+      <label><input type="checkbox" id="showLang"> Show Language Code</label>
+    </div>
+    <button class="btn btn-primary btn-sm" id="uploadBtn">Upload Image</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content-layout" id="contentLayout">
+    <!-- Grid Area -->
+    <div class="grid-area" id="gridArea">
+      <div class="empty-state" id="emptyState">
+        <div class="icon">📁</div>
+        <h4>No Series Selected</h4>
+        <p>Use the search above to find and select a series.</p>
+      </div>
+      <div class="loading-wrap hidden" id="gridLoading">
+        <div class="spinner"></div>
+        <span>Loading images...</span>
+      </div>
+      <div class="image-grid hidden" id="imageGrid"></div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="side-panel hidden" id="sidePanel">
+      <h3>Image Details</h3>
+      <div id="panelContent">
+        <div class="empty-state" style="padding: 20px 0;">
+          <p>Select an image to view details.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2>Upload Image</h2>
+      <button class="modal-close" data-modal="uploadModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="uploadForm">
+        <div class="form-group">
+          <label for="uploadFile">Image File</label>
+          <input type="file" id="uploadFile" accept="image/*" required>
+        </div>
+        <div class="form-group">
+          <label for="uploadType">Image Type</label>
+          <select id="uploadType" required>
+            <option value="Primary">Poster (Primary)</option>
+            <option value="Backdrop">Backdrop</option>
+            <option value="Banner">Banner</option>
+            <option value="Logo">Logo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-inline">
+            <input type="checkbox" id="uploadPreferred">
+            Set as preferred
+          </label>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-modal="uploadModal">Cancel</button>
+      <button class="btn btn-primary" id="uploadSubmit">Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2>Delete Image</h2>
+      <button class="modal-close" data-modal="deleteModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <img class="delete-preview hidden" id="deletePreview" alt="Preview">
+      <p>Are you sure you want to delete this image? This action cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-modal="deleteModal">Cancel</button>
+      <button class="btn btn-danger" id="deleteConfirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* =========================
+   STATE
+   ========================= */
+const state = {
+  mode: 'series', // 'series' | 'episode'
+  seriesId: null,
+  seriesName: '',
+  episodeId: null,
+  episodeName: '',
+  images: { Posters: [], Backdrops: [], Banners: [], Logos: [] },
+  selectedImage: null,
+  activeTab: 'Posters',
+  showDisabled: false,
+  showSource: false,
+  showLang: false,
+  searchDebounce: null,
+  loading: false,
+};
+
+/* =========================
+   AUTH & API HELPERS
+   ========================= */
+function getAuthToken() {
+  try {
+    const raw = localStorage.getItem('apiSession');
+    if (raw) { const s = JSON.parse(raw); if (s?.apikey) return s.apikey; }
+  } catch {}
+  return null;
+}
+function apiHeaders() {
+  const t = getAuthToken();
+  const h = { 'Content-Type': 'application/json' };
+  if (t) h['apikey'] = t;
+  return h;
+}
+function apiHeadersNoCT() {
+  const t = getAuthToken();
+  const h = {};
+  if (t) h['apikey'] = t;
+  return h;
+}
+
+async function apiGet(url) {
+  const res = await fetch(url, { headers: apiHeaders() });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+async function apiPut(url, body) {
+  const res = await fetch(url, { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res;
+}
+async function apiPost(url, body) {
+  const res = await fetch(url, { method: 'POST', headers: apiHeaders(), body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res;
+}
+async function apiDelete(url) {
+  const res = await fetch(url, { method: 'DELETE', headers: apiHeaders() });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res;
+}
+
+/* =========================
+   DOM REFERENCES
+   ========================= */
+const els = {
+  modeSeries: document.getElementById('modeSeries'),
+  modeEpisode: document.getElementById('modeEpisode'),
+  seriesSearch: document.getElementById('seriesSearch'),
+  seriesDropdown: document.getElementById('seriesDropdown'),
+  selectedSeries: document.getElementById('selectedSeries'),
+  seriesName: document.getElementById('seriesName'),
+  seriesId: document.getElementById('seriesId'),
+  episodeSelectWrap: document.getElementById('episodeSelectWrap'),
+  episodeSelect: document.getElementById('episodeSelect'),
+  imageTabs: document.getElementById('imageTabs'),
+  controlsRow: document.getElementById('controlsRow'),
+  gridArea: document.getElementById('gridArea'),
+  emptyState: document.getElementById('emptyState'),
+  gridLoading: document.getElementById('gridLoading'),
+  imageGrid: document.getElementById('imageGrid'),
+  sidePanel: document.getElementById('sidePanel'),
+  panelContent: document.getElementById('panelContent'),
+  uploadBtn: document.getElementById('uploadBtn'),
+  uploadModal: document.getElementById('uploadModal'),
+  uploadForm: document.getElementById('uploadForm'),
+  uploadFile: document.getElementById('uploadFile'),
+  uploadType: document.getElementById('uploadType'),
+  uploadPreferred: document.getElementById('uploadPreferred'),
+  uploadSubmit: document.getElementById('uploadSubmit'),
+  deleteModal: document.getElementById('deleteModal'),
+  deletePreview: document.getElementById('deletePreview'),
+  deleteConfirm: document.getElementById('deleteConfirm'),
+  toastContainer: document.getElementById('toastContainer'),
+  showDisabled: document.getElementById('showDisabled'),
+  showSource: document.getElementById('showSource'),
+  showLang: document.getElementById('showLang'),
+};
+
+/* =========================
+   TOASTS
+   ========================= */
+function showToast(message, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = message;
+  els.toastContainer.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+/* =========================
+   MODALS
+   ========================= */
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('[data-modal]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.modal));
+});
+
+/* =========================
+   PERSISTENCE
+   ========================= */
+const STORAGE_KEY = 'imageManagerState';
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      mode: state.mode,
+      seriesId: state.seriesId,
+      seriesName: state.seriesName,
+      episodeId: state.episodeId,
+      episodeName: state.episodeName,
+    }));
+  } catch {}
+}
+
+function loadSavedState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function clearSavedState() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+}
+
+function showEpisodeEmptyState() {
+  els.emptyState.classList.remove('hidden');
+  els.emptyState.innerHTML = `
+    <div class="icon">🎬</div>
+    <h4>Select an Episode</h4>
+    <p>Choose an episode from the dropdown above.</p>
+  `;
+}
+
+/* =========================
+   MODE TOGGLE
+   ========================= */
+function setMode(mode) {
+  state.mode = mode;
+  state.selectedImage = null;
+  state.images = { Posters: [], Backdrops: [], Banners: [], Logos: [] };
+
+  els.modeSeries.classList.toggle('active', mode === 'series');
+  els.modeEpisode.classList.toggle('active', mode === 'episode');
+
+  // Clear mode-specific areas that will be rebuilt
+  els.sidePanel.classList.add('hidden');
+  els.imageGrid.classList.add('hidden');
+  els.emptyState.classList.add('hidden');
+  els.imageTabs.classList.add('hidden');
+  els.controlsRow.classList.add('hidden');
+
+  if (state.seriesId && state.seriesName) {
+    // Series already selected — keep it displayed
+    els.selectedSeries.classList.remove('hidden');
+    els.seriesName.textContent = state.seriesName;
+    els.seriesId.textContent = `ID: ${state.seriesId}`;
+
+    if (mode === 'episode') {
+      els.episodeSelectWrap.classList.remove('hidden');
+      // Load episodes if not yet loaded
+      if (els.episodeSelect.options.length <= 1) {
+        els.episodeSelect.innerHTML = '<option value="">Loading episodes...</option>';
+        loadEpisodes(state.seriesId);
+      }
+      if (state.episodeId) {
+        els.episodeSelect.value = state.episodeId;
+        loadImages();
+      } else {
+        showEpisodeEmptyState();
+      }
+    } else {
+      els.episodeSelectWrap.classList.add('hidden');
+      loadImages();
+    }
+  } else {
+    // No series — show empty state
+    els.selectedSeries.classList.add('hidden');
+    els.episodeSelectWrap.classList.toggle('hidden', mode !== 'episode');
+    if (mode === 'episode') {
+      els.episodeSelect.innerHTML = '<option value="">Select an episode...</option>';
+    }
+    els.emptyState.classList.remove('hidden');
+    els.emptyState.innerHTML = `
+      <div class="icon">📁</div>
+      <h4>No Series Selected</h4>
+      <p>Use the search above to find and select a series.</p>
+    `;
+  }
+}
+els.modeSeries.addEventListener('click', () => setMode('series'));
+els.modeEpisode.addEventListener('click', () => setMode('episode'));
+
+/* =========================
+   SERIES SEARCH
+   ========================= */
+els.seriesSearch.addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  clearTimeout(state.searchDebounce);
+  if (!q) { els.seriesDropdown.classList.remove('open'); return; }
+  state.searchDebounce = setTimeout(() => doSeriesSearch(q), 300);
+});
+els.seriesSearch.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const q = els.seriesSearch.value.trim();
+    if (q) doSeriesSearch(q);
+  }
+});
+
+async function doSeriesSearch(query) {
+  els.seriesDropdown.innerHTML = '<div class="loading">Searching...</div>';
+  els.seriesDropdown.classList.add('open');
+  try {
+    const url = `/api/v3/Series/Search?query=${encodeURIComponent(query)}&limit=100&searchById=true`;
+    const data = await apiGet(url);
+    renderSeriesDropdown(data || []);
+  } catch (err) {
+    els.seriesDropdown.innerHTML = `<div class="empty">Error: ${err.message}</div>`;
+  }
+}
+
+function renderSeriesDropdown(list) {
+  if (!list.length) {
+    els.seriesDropdown.innerHTML = '<div class="empty">No results found</div>';
+    return;
+  }
+  els.seriesDropdown.innerHTML = list.map(s => `
+    <div class="item" data-id="${s.IDs?.ID || s.ID}" data-name="${escapeHtml(s.Name)}">
+      <span class="name">${escapeHtml(s.Name)}</span>
+      <span class="id">ID: ${s.IDs?.ID || s.ID}</span>
+    </div>
+  `).join('');
+  els.seriesDropdown.querySelectorAll('.item').forEach(item => {
+    item.addEventListener('click', () => selectSeries(parseInt(item.dataset.id), item.dataset.name));
+  });
+}
+
+document.addEventListener('click', (e) => {
+  if (!els.seriesSearchWrap.contains(e.target)) els.seriesDropdown.classList.remove('open');
+});
+
+/* =========================
+   SELECT SERIES
+   ========================= */
+async function selectSeries(id, name) {
+  state.seriesId = id;
+  state.seriesName = name;
+  state.episodeId = null;
+  state.episodeName = '';
+  state.selectedImage = null;
+  els.seriesSearch.value = '';
+  els.seriesDropdown.classList.remove('open');
+
+  els.seriesName.textContent = name;
+  els.seriesId.textContent = `ID: ${id}`;
+  els.selectedSeries.classList.remove('hidden');
+
+  if (state.mode === 'episode') {
+    els.episodeSelect.innerHTML = '<option value="">Loading episodes...</option>';
+    await loadEpisodes(id);
+    els.imageTabs.classList.add('hidden');
+    els.controlsRow.classList.add('hidden');
+    els.sidePanel.classList.add('hidden');
+    els.imageGrid.classList.add('hidden');
+    els.emptyState.classList.remove('hidden');
+    els.emptyState.innerHTML = `
+      <div class="icon">🎬</div>
+      <h4>Select an Episode</h4>
+      <p>Choose an episode from the dropdown above.</p>
+    `;
+  } else {
+    els.episodeSelectWrap.classList.add('hidden');
+    await loadImages();
+  }
+  saveState();
+}
+
+/* =========================
+   LOAD EPISODES
+   ========================= */
+async function loadEpisodes(seriesId) {
+  try {
+    // Fetch series info for total episode counts across all types (determines padding width)
+    const seriesData = await apiGet(`/api/v3/Series/${seriesId}`);
+    const total = seriesData.Sizes?.Total || {};
+    const maxCount = Math.max(
+      total.Episodes || 0,
+      total.Specials || 0,
+      total.Credits || 0,
+      total.Trailers || 0,
+      total.Parodies || 0,
+      total.Others || 0,
+      total.Unknown || 0
+    );
+    const padding = String(maxCount).length;
+
+    const data = await apiGet(`/api/v3/Series/${seriesId}/Episode?pageSize=200&page=1&includeDataFrom=AniDB`);
+    const list = data.List || [];
+    if (!list.length) {
+      els.episodeSelect.innerHTML = '<option value="">No episodes found</option>';
+      return;
+    }
+
+    const typePrefix = { Episode: 'EP', Special: 'SP', Credits: 'CR', Trailer: 'PV', Parody: 'PD', Other: 'OT' };
+    els.episodeSelect.innerHTML = '<option value="">Select an episode...</option>' +
+      list.map(ep => {
+        const epType = ep.AniDB?.Type || 'Episode';
+        const prefix = typePrefix[epType] || 'EP';
+        const epNum = ep.AniDB?.EpisodeNumber;
+        const number = epNum != null ? String(epNum).padStart(padding, '0') : '?'.padStart(padding, ' ');
+        const title = ep.Name || ep.AniDB?.Title || '';
+        return `<option value="${ep.IDs?.ID || ep.ID}">${prefix} ${number} - ${escapeHtml(title)}</option>`;
+      }).join('');
+  } catch (err) {
+    showToast('Failed to load episodes: ' + err.message, 'error');
+    els.episodeSelect.innerHTML = '<option value="">Error loading episodes</option>';
+  }
+}
+
+els.episodeSelect.addEventListener('change', async (e) => {
+  const id = parseInt(e.target.value);
+  if (!id) return;
+  const option = e.target.options[e.target.selectedIndex];
+  state.episodeId = id;
+  state.episodeName = option.text;
+  await loadImages();
+  saveState();
+});
+
+/* =========================
+   LOAD IMAGES
+   ========================= */
+async function loadImages() {
+  state.loading = true;
+  state.selectedImage = null;
+  els.emptyState.classList.add('hidden');
+  els.imageGrid.classList.add('hidden');
+  els.gridLoading.classList.remove('hidden');
+  els.sidePanel.classList.add('hidden');
+  els.imageTabs.classList.add('hidden');
+  els.controlsRow.classList.add('hidden');
+
+  try {
+    let url;
+    if (state.mode === 'series') {
+      url = `/api/v3/Series/${state.seriesId}/Images?includeDisabled=true`;
+    } else {
+      url = `/api/v3/Episode/${state.episodeId}/Images`;
+    }
+    const data = await apiGet(url);
+    state.images = {
+      Posters: data.Posters || [],
+      Backdrops: data.Backdrops || [],
+      Banners: data.Banners || [],
+      Logos: data.Logos || [],
+    };
+    els.imageTabs.classList.remove('hidden');
+    els.controlsRow.classList.remove('hidden');
+    els.sidePanel.classList.remove('hidden');
+    renderGrid();
+    renderPanel();
+  } catch (err) {
+    showToast('Failed to load images: ' + err.message, 'error');
+    els.emptyState.classList.remove('hidden');
+    els.emptyState.innerHTML = `
+      <div class="icon">⚠️</div>
+      <h4>Error Loading Images</h4>
+      <p>${escapeHtml(err.message)}</p>
+    `;
+  } finally {
+    state.loading = false;
+    els.gridLoading.classList.add('hidden');
+  }
+}
+
+/* =========================
+   TABS
+   ========================= */
+function setTab(type) {
+  state.activeTab = type;
+  els.imageTabs.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.type === type);
+  });
+  renderGrid();
+}
+els.imageTabs.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => setTab(t.dataset.type));
+});
+
+/* =========================
+   GRID RENDERING
+   ========================= */
+function getGridCols(type) {
+  if (type === 'Posters' || type === 'Logos') return 'cols-6';
+  if (type === 'Backdrops') return 'cols-3';
+  return 'cols-4';
+}
+
+function renderGrid() {
+  const list = state.images[state.activeTab] || [];
+  const filtered = state.showDisabled ? list : list.filter(img => !img.Disabled);
+
+  els.imageGrid.className = `image-grid ${getGridCols(state.activeTab)}`;
+
+  if (!filtered.length) {
+    els.imageGrid.classList.add('hidden');
+    els.emptyState.classList.remove('hidden');
+    els.emptyState.innerHTML = `
+      <div class="icon">🖼️</div>
+      <h4>No ${state.activeTab}</h4>
+      <p>There are no ${state.activeTab.toLowerCase()} for this ${state.mode}.</p>
+    `;
+    return;
+  }
+
+  els.emptyState.classList.add('hidden');
+  els.imageGrid.classList.remove('hidden');
+
+  els.imageGrid.innerHTML = filtered.map(img => {
+    const isSelected = state.selectedImage && state.selectedImage.UID === img.UID;
+    const cardClass = `image-card ${state.activeTab === 'Backdrops' ? 'backdrop' : ''} ${state.activeTab === 'Banners' ? 'banner' : ''} ${state.activeTab === 'Logos' ? 'logo' : ''} ${isSelected ? 'selected' : ''}`;
+    const src = `/api/v3/Image/${img.UID}`;
+    const badges = [];
+    if (img.Preferred) badges.push('<span class="badge badge-preferred">★ Preferred</span>');
+    if (img.Disabled) badges.push('<span class="badge badge-disabled">Disabled</span>');
+    if (state.showLang && img.LanguageCode) badges.push(`<span class="badge badge-lang">${escapeHtml(img.LanguageCode)}</span>`);
+
+    return `
+      <div class="${cardClass}" data-uid="${img.UID}">
+        <img src="${src}" alt="" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="placeholder" style="display:none">🖼️</div>
+        <div class="badges">${badges.join('')}</div>
+        ${img.Source ? `<div class="badge-source-corner"><span class="badge badge-source">${escapeHtml(img.Source)}</span></div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  els.imageGrid.querySelectorAll('.image-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const uid = card.dataset.uid;
+      const img = filtered.find(i => i.UID === uid);
+      selectImage(img);
+    });
+  });
+}
+
+function selectImage(img) {
+  state.selectedImage = img;
+  els.imageGrid.querySelectorAll('.image-card').forEach(c => c.classList.remove('selected'));
+  const card = els.imageGrid.querySelector(`.image-card[data-uid="${img.UID}"]`);
+  if (card) card.classList.add('selected');
+  renderPanel();
+}
+
+/* =========================
+   SIDE PANEL
+   ========================= */
+function renderPanel() {
+  if (!state.selectedImage) {
+    els.panelContent.innerHTML = `
+      <div class="empty-state" style="padding: 20px 0;">
+        <p>Select an image to view details.</p>
+      </div>
+    `;
+    return;
+  }
+  const img = state.selectedImage;
+  const src = `/api/v3/Image/${img.UID}`;
+  const dims = (img.Width && img.Height) ? `${img.Width} × ${img.Height}` : 'Unknown';
+
+  els.panelContent.innerHTML = `
+    <div class="info-row">
+      <span class="info-label">Source</span>
+      <span class="info-value">${escapeHtml(img.Source)}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Type</span>
+      <span class="info-value">${escapeHtml(img.Type)}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Dimensions</span>
+      <span class="info-value">${dims}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Available</span>
+      <span class="info-value ${img.Available ? 'bool-yes' : 'bool-no'}">${img.Available ? 'Yes' : 'No'}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Preferred</span>
+      <span class="info-value ${img.Preferred ? 'bool-yes' : 'bool-no'}">${img.Preferred ? 'Yes' : 'No'}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Disabled</span>
+      <span class="info-value ${img.Disabled ? 'bool-no' : 'bool-yes'}">${img.Disabled ? 'Yes' : 'No'}</span>
+    </div>
+    ${img.LanguageCode ? `
+    <div class="info-row">
+      <span class="info-label">Language</span>
+      <span class="info-value">${escapeHtml(img.LanguageCode)}</span>
+    </div>` : ''}
+    <div class="actions">
+      <button class="btn ${img.Preferred ? 'btn-secondary' : 'btn-success'} btn-block" id="btnPreferred">
+        ${img.Preferred ? 'Unset Preferred' : '★ Set As Preferred'}
+      </button>
+      <button class="btn btn-secondary btn-block" id="btnToggle">
+        ${img.Disabled ? 'Enable Image' : 'Disable Image'}
+      </button>
+      ${img.Source === 'User' ? `<button class="btn btn-danger btn-block" id="btnDelete">Delete Image</button>` : ''}
+      <a class="btn btn-secondary btn-block" href="${src}" target="_blank" rel="noopener">View Full Size</a>
+    </div>
+    <div class="hint">UID: ${img.UID}</div>
+  `;
+
+  document.getElementById('btnPreferred').addEventListener('click', () => setPreferred(img));
+  const toggleBtn = document.getElementById('btnToggle');
+  if (toggleBtn) toggleBtn.addEventListener('click', () => toggleEnabled(img));
+  const deleteBtn = document.getElementById('btnDelete');
+  if (deleteBtn) deleteBtn.addEventListener('click', () => confirmDelete(img));
+}
+
+/* =========================
+   ACTIONS
+   ========================= */
+async function setPreferred(img) {
+  const entityId = state.mode === 'series' ? state.seriesId : state.episodeId;
+  if (!entityId) return;
+  const prefix = state.mode === 'series' ? 'Series' : 'Episode';
+  try {
+    if (img.Preferred) {
+      await apiPost(`/api/plugin/ImageManager/${prefix}/${entityId}/Images/UnsetPreferred`, { imageUID: img.UID });
+      showToast('Image unset as preferred', 'success');
+    } else {
+      await apiPut(`/api/v3/${prefix}/${entityId}/Images/${img.Type}`, { ID: img.UID, Source: img.Source });
+      showToast('Image set as preferred', 'success');
+    }
+    await loadImages();
+  } catch (err) {
+    showToast('Failed: ' + err.message, 'error');
+  }
+}
+
+async function toggleEnabled(img) {
+  const entityId = state.mode === 'series' ? state.seriesId : state.episodeId;
+  if (!entityId) return;
+  const enabled = !!img.Disabled; // if disabled, we want to enable
+  const prefix = state.mode === 'series' ? 'Series' : 'Episode';
+  try {
+    await apiPost(`/api/plugin/ImageManager/${prefix}/${entityId}/Images/Toggle`, { imageUID: img.UID, enabled });
+    showToast(enabled ? 'Image enabled' : 'Image disabled', 'success');
+    await loadImages();
+  } catch (err) {
+    showToast('Failed to toggle: ' + err.message, 'error');
+  }
+}
+
+function confirmDelete(img) {
+  state.imageToDelete = img;
+  const src = `/api/v3/Image/${img.UID}`;
+  els.deletePreview.src = src;
+  els.deletePreview.classList.remove('hidden');
+  els.deletePreview.onerror = () => els.deletePreview.classList.add('hidden');
+  openModal('deleteModal');
+}
+
+els.deleteConfirm.addEventListener('click', async () => {
+  const img = state.imageToDelete;
+  if (!img) return;
+  closeModal('deleteModal');
+  try {
+    // Try management delete with the integer ID; backend may resolve it
+    await apiDelete(`/api/v3/Image/Management/${img.UID}`);
+    showToast('Image deleted', 'success');
+    await loadImages();
+  } catch (err) {
+    showToast('Failed to delete: ' + err.message, 'error');
+  }
+  state.imageToDelete = null;
+});
+
+/* =========================
+   UPLOAD
+   ========================= */
+els.uploadBtn.addEventListener('click', () => {
+  els.uploadForm.reset();
+  // Default type matches active tab
+  const map = { Posters: 'Primary', Backdrops: 'Backdrop', Banners: 'Banner', Logos: 'Logo' };
+  els.uploadType.value = map[state.activeTab] || 'Primary';
+  openModal('uploadModal');
+});
+
+els.uploadSubmit.addEventListener('click', async () => {
+  const file = els.uploadFile.files[0];
+  if (!file) { showToast('Please select a file', 'error'); return; }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('imageType', els.uploadType.value);
+  formData.append('setPreferred', els.uploadPreferred.checked ? 'true' : 'false');
+
+  const entityId = state.mode === 'series' ? state.seriesId : state.episodeId;
+  const url = state.mode === 'series'
+    ? `/api/plugin/ImageManager/Series/${entityId}/Upload`
+    : `/api/plugin/ImageManager/Episode/${entityId}/Upload`;
+
+  closeModal('uploadModal');
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: apiHeadersNoCT(),
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast('Image uploaded successfully', 'success');
+    await loadImages();
+  } catch (err) {
+    showToast('Upload failed: ' + err.message, 'error');
+  }
+});
+
+/* =========================
+   CHECKBOXES
+   ========================= */
+els.showDisabled.addEventListener('change', (e) => {
+  state.showDisabled = e.target.checked;
+  renderGrid();
+});
+els.showSource.addEventListener('change', (e) => {
+  state.showSource = e.target.checked;
+  renderGrid();
+});
+els.showLang.addEventListener('change', (e) => {
+  state.showLang = e.target.checked;
+  renderGrid();
+});
+
+/* =========================
+   MANUAL AUTH
+   ========================= */
+function saveAuth() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) {
+    document.getElementById('loginStatus').textContent = 'Enter a valid API key.';
+    return;
+  }
+  const session = { apikey: key, username: 'manual', rememberUser: true, version: '1' };
+  localStorage.setItem('apiSession', JSON.stringify(session));
+  document.getElementById('loginCard').style.display = 'none';
+  document.getElementById('appContainer').style.display = '';
+  document.getElementById('loginStatus').textContent = '';
+  // Re-init now that auth is available
+  initFromParamsOrSaved();
+}
+
+/* =========================
+   UTILS
+   ========================= */
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* =========================
+   INIT
+   ========================= */
+if (!getAuthToken()) {
+  document.getElementById('loginStatus').textContent = '';
+} else {
+  document.getElementById('loginCard').style.display = 'none';
+  document.getElementById('appContainer').style.display = '';
+  initFromParamsOrSaved();
+}
+
+async function initFromParamsOrSaved() {
+  setMode('series');
+  const params = new URLSearchParams(window.location.search);
+  const aid = params.get('aid');
+  const eid = params.get('eid');
+
+  // Query params override saved state
+  if (aid) {
+    try {
+      if (eid) setMode('episode');
+      const seriesData = await apiGet(`/api/v3/Series/AniDB/${aid}/Series`);
+      const seriesId = seriesData.IDs?.ID;
+      const seriesName = seriesData.Name;
+      if (seriesId) {
+        await selectSeries(seriesId, seriesName);
+        if (eid) {
+          const epData = await apiGet(`/api/v3/Episode/AniDB/${eid}/Episode`);
+          const epId = epData.IDs?.ID;
+          if (epId) {
+            const waitForEp = setInterval(() => {
+              const opt = els.episodeSelect.querySelector(`option[value="${epId}"]`);
+              if (opt) {
+                clearInterval(waitForEp);
+                els.episodeSelect.value = epId;
+                els.episodeSelect.dispatchEvent(new Event('change'));
+              }
+            }, 100);
+            setTimeout(() => clearInterval(waitForEp), 10000);
+          }
+        }
+        return;
+      }
+    } catch {}
+  }
+
+  // Fall back to saved state
+  const saved = loadSavedState();
+  if (!saved) return;
+  if (saved.mode) setMode(saved.mode);
+  if (saved.seriesId && saved.seriesName) {
+    await selectSeries(saved.seriesId, saved.seriesName);
+    if (saved.mode === 'episode' && saved.episodeId) {
+      const waitForEp = setInterval(() => {
+        const opt = els.episodeSelect.querySelector(`option[value="${saved.episodeId}"]`);
+        if (opt) {
+          clearInterval(waitForEp);
+          els.episodeSelect.value = saved.episodeId;
+          els.episodeSelect.dispatchEvent(new Event('change'));
+        }
+      }, 100);
+      setTimeout(() => clearInterval(waitForEp), 10000);
+    }
+  }
+}
+</script>
+</body>
+</html>

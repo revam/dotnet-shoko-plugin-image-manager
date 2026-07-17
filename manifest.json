@@ -1,0 +1,17 @@
+{
+  "id": "0bb96da1-c996-44a3-9ddb-27961cce0c4d",
+  "name": "Image Manager",
+  "overview": "Upload and manage user-submitted images for Shoko series and episodes. Browse, upload, set as preferred, enable/disable, and delete images through an intuitive dashboard UI.",
+  "authors": "",
+  "repository_url": null,
+  "homepage_url": null,
+  "tags": [
+    "image-management",
+    "image-upload",
+    "series",
+    "episode"
+  ],
+  "image_url": null,
+  "releases": [
+  ]
+}
