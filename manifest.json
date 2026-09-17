@@ -1,0 +1,30 @@
+{
+  "id": "0bb96da1-c996-44a3-9ddb-27961cce0c4d",
+  "name": "Image Manager",
+  "overview": "Upload and manage user-submitted images for Shoko series and episodes. Browse, upload, set as preferred, enable/disable, and delete images through an intuitive dashboard UI.",
+  "authors": "revam",
+  "repository_url": "https://github.com/revam/dotnet-shoko-plugin-image-manager",
+  "tags": [
+    "image-management",
+    "image-upload",
+    "series",
+    "episode"
+  ],
+  "releases": [
+    {
+      "version": "1.0.0",
+      "tag": "v1.0.0",
+      "source_revision": "872806edf14e3013fb60a71416d15a1d808bb444",
+      "released_at": "2026-07-17T05:34:44Z",
+      "channel": "Stable",
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/revam/dotnet-shoko-plugin-image-manager/releases/download/v1.0.0/Shoko.Plugin.ImageManager-v1.0.0-any.zip",
+          "checksum": "8e79e5cab799810b60d5f173f3b1a37b19de0440c165b036155765bb8588a5fb"
+        }
+      ]
+    }
+  ]
+}
