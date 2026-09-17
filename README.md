@@ -18,7 +18,7 @@ A [Shoko](https://shokoanime.com/) plugin for uploading and managing images for 
 1. Open the Shoko Web UI and navigate to **Settings → Plugins → Repositories**.
 2. Add the manifest URL:
    ```
-   https://raw.githubusercontent.com/revam/dotnet-shoko-plugin-image-manager/stable/manifest.json
+   https://raw.githubusercontent.com/revam/dotnet-shoko-plugin-image-manager/metadata/manifest.json
    ```
 3. Go to **Settings → Plugins → Browse** and find **Image Manager**.
 4. Click **Install** on the desired version.
