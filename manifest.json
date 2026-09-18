@@ -5,12 +5,30 @@
   "authors": "revam",
   "repository_url": "https://github.com/revam/dotnet-shoko-plugin-image-manager",
   "tags": [
+    "resource-resolver",
+    "service-registration",
     "image-management",
     "image-upload",
     "series",
     "episode"
   ],
   "releases": [
+    {
+      "version": "1.0.1",
+      "tag": "v1.0.1",
+      "released_at": "2026-09-18T04:41:08.9541809Z",
+      "channel": "Stable",
+      "release_notes": "Rebuilt against the current abstractions, and moved release packaging onto \u0060shoko-build\u0060 with the published manifest on the \u0060metadata\u0060 branch.\n\nRequires Shoko Server with abstractions \u00606.0.0-alpha.89\u0060.",
+      "dependencies": [],
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/revam/dotnet-shoko-plugin-image-manager/releases/download/v1.0.1/ImageManager-v1.0.1-any.zip",
+          "checksum": "sha256:71cec66ce068ad5cbace6524cc9afbfd347f5f14555713e0c539b4a920b8604a"
+        }
+      ]
+    },
     {
       "version": "1.0.0",
       "tag": "v1.0.0",
