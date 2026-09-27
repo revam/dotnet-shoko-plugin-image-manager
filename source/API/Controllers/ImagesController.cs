@@ -20,7 +20,7 @@ namespace Shoko.Plugin.ImageManager.API.Controllers;
 /// in the existing API:
 ///   1. Sugar upload — combines upload + cross-reference (+ optional set-preferred)
 ///      into a single POST.
-///   2. Cross-reference-level toggle — toggles IsEnabled on the xref (not the image).
+///   2. Cross-reference-level toggle — toggles IsEnabled on the entity's xrefs (not the image).
 /// </summary>
 [ApiController]
 [Authorize(Roles = "admin")]
@@ -139,7 +139,8 @@ public class ImagesController : ControllerBase
     /// <summary>
     /// Toggle the cross-reference-level enabled flag for a series image.
     /// Unlike <c>POST /api/v3/Image/Management/{imageID}/Enabled</c> (which toggles the image globally),
-    /// this toggles the link between the series and the image only.
+    /// this toggles only the links the series sees: its own and those of the
+    /// entities linked to it.
     /// </summary>
     [HttpPost("Series/{seriesId}/Images/Toggle")]
     public ActionResult ToggleSeriesImageEnabled(
@@ -188,20 +189,31 @@ public class ImagesController : ControllerBase
     {
         var image = _imageManager.GetImageByID(imageUID);
         if (image is null) return null;
-        var xrefs = _imageManager.GetImageCrossReferencesForEntity(entity);
-        return xrefs.FirstOrDefault(x => x.ImageID == image.ID);
+        // The entity's own link wins over one it only sees through a linked
+        // entity, since APIv3 only counts the own link as preferred.
+        return _imageManager.GetImageCrossReferencesForEntity(entity)
+            .Where(x => x.ImageID == image.ID)
+            .OrderByDescending(x => x.EntityID == entity.ID)
+            .FirstOrDefault();
     }
 
     private ActionResult ToggleXref(IWithImages entity, ToggleImageEnabledBody body)
     {
-        var xref = FindXref(entity, body.ImageUID);
-        if (xref is null)
+        // Every link the entity sees for the image, its own and its linked
+        // entities' alike: APIv3 reports an image as disabled only once all
+        // of its links are, so flipping just one would not show.
+        var image = _imageManager.GetImageByID(body.ImageUID);
+        var xrefs = image is null
+            ? []
+            : _imageManager.GetImageCrossReferencesForEntity(entity).Where(x => x.ImageID == image.ID).ToList();
+        if (xrefs.Count is 0)
             return NotFound("Cross-reference not found for the given entity and image.");
 
-        _imageManager.UpdateImageCrossReference(xref, new ImageCrossReferenceUpdateData
-        {
-            IsEnabled = body.Enabled,
-        });
+        foreach (var xref in xrefs)
+            _imageManager.UpdateImageCrossReference(xref, new ImageCrossReferenceUpdateData
+            {
+                IsEnabled = body.Enabled,
+            });
 
         return NoContent();
     }
