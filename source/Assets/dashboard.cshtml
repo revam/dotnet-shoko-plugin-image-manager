@@ -818,8 +818,8 @@ async function apiPut(url, body) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res;
 }
-async function apiPost(url, body) {
-  const res = await fetch(url, { method: 'POST', headers: apiHeaders(), body: JSON.stringify(body) });
+async function apiPatch(url, body) {
+  const res = await fetch(url, { method: 'PATCH', headers: apiHeaders(), body: JSON.stringify(body) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res;
 }
@@ -1319,13 +1319,21 @@ function renderPanel() {
 /* =========================
    ACTIONS
    ========================= */
+// The links the entity sees the image through, its own first, each managed
+// through the APIv3 image cross-reference routes.
+function crossReferenceUrl(xref) {
+  return `/api/v3/Image/Management/CrossReference/${xref.ID}`;
+}
+
 async function setPreferred(img) {
   const entityId = state.mode === 'series' ? state.seriesId : state.episodeId;
   if (!entityId) return;
   const prefix = state.mode === 'series' ? 'Series' : 'Episode';
   try {
     if (img.Preferred) {
-      await apiPost(`/api/plugin/ImageManager/${prefix}/${entityId}/Images/UnsetPreferred`, { imageUID: img.UID });
+      const xref = (img.CrossReferences || []).find(x => x.IsPreferred);
+      if (!xref) throw new Error('no preferred link for the image');
+      await apiDelete(`${crossReferenceUrl(xref)}/Preferred`);
       showToast('Image unset as preferred', 'success');
     } else {
       await apiPut(`/api/v3/${prefix}/${entityId}/Images/${img.Type}/Default`, { ID: img.UID });
@@ -1338,12 +1346,13 @@ async function setPreferred(img) {
 }
 
 async function toggleEnabled(img) {
-  const entityId = state.mode === 'series' ? state.seriesId : state.episodeId;
-  if (!entityId) return;
   const enabled = !!img.Disabled; // if disabled, we want to enable
-  const prefix = state.mode === 'series' ? 'Series' : 'Episode';
+  // Every link the entity sees the image through: APIv3 reports an image as
+  // disabled only once all of them are, so flipping just one would not show.
+  const xrefs = (img.CrossReferences || []).filter(x => x.IsEnabled !== enabled);
   try {
-    await apiPost(`/api/plugin/ImageManager/${prefix}/${entityId}/Images/Toggle`, { imageUID: img.UID, enabled });
+    if (!img.CrossReferences?.length) throw new Error('no links for the image');
+    await Promise.all(xrefs.map(x => apiPatch(crossReferenceUrl(x), { IsEnabled: enabled })));
     showToast(enabled ? 'Image enabled' : 'Image disabled', 'success');
     await loadImages();
   } catch (err) {

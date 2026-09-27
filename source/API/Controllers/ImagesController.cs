@@ -13,14 +13,14 @@ using Shoko.Abstractions.Metadata.Services;
 namespace Shoko.Plugin.ImageManager.API.Controllers;
 
 /// <summary>
-/// Sugar upload + image management endpoints for Shoko series and episodes.
+/// Sugar upload endpoints for Shoko series and episodes.
 ///
-/// Wherever possible the frontend calls APIv3 directly (list images, enable/disable,
-/// set preferred, delete). This controller provides only endpoints that bridge gaps
-/// in the existing API:
-///   1. Sugar upload — combines upload + cross-reference (+ optional set-preferred)
-///      into a single POST.
-///   2. Cross-reference-level toggle — toggles IsEnabled on the entity's xrefs (not the image).
+/// The frontend calls APIv3 directly for everything else (list images, set and
+/// unset preferred, enable or disable each link through the image
+/// cross-reference routes, delete). This controller only bridges the one gap
+/// left in the existing API: an upload that also links the image to the entity
+/// and optionally sets it as preferred in a single POST, from either a form or
+/// a raw body.
 /// </summary>
 [ApiController]
 [Authorize(Roles = "admin")]
@@ -133,134 +133,6 @@ public class ImagesController : ControllerBase
     }
 
     // ──────────────────────────────────────────────
-    //  Cross-Reference Toggle — Series
-    // ──────────────────────────────────────────────
-
-    /// <summary>
-    /// Toggle the cross-reference-level enabled flag for a series image.
-    /// Unlike <c>POST /api/v3/Image/Management/{imageID}/Enabled</c> (which toggles the image globally),
-    /// this toggles only the links the series sees: its own and those of the
-    /// entities linked to it.
-    /// </summary>
-    [HttpPost("Series/{seriesId}/Images/Toggle")]
-    public ActionResult ToggleSeriesImageEnabled(
-        [FromRoute] int seriesId,
-        [FromBody] ToggleImageEnabledBody body
-    )
-    {
-        if (seriesId <= 0)
-            return BadRequest("Series id must be a positive integer.");
-
-        var series = _metadataService.GetShokoSeriesByID(seriesId);
-        if (series is null)
-            return NotFound("Series not found.");
-
-        return ToggleXref(series, body);
-    }
-
-    // ──────────────────────────────────────────────
-    //  Cross-Reference Toggle — Episode
-    // ──────────────────────────────────────────────
-
-    /// <summary>
-    /// Toggle the cross-reference-level enabled flag for an episode image.
-    /// </summary>
-    [HttpPost("Episode/{episodeId}/Images/Toggle")]
-    public ActionResult ToggleEpisodeImageEnabled(
-        [FromRoute] int episodeId,
-        [FromBody] ToggleImageEnabledBody body
-    )
-    {
-        if (episodeId <= 0)
-            return BadRequest("Episode id must be a positive integer.");
-
-        var episode = _metadataService.GetShokoEpisodeByID(episodeId);
-        if (episode is null)
-            return NotFound("Episode not found.");
-
-        return ToggleXref(episode, body);
-    }
-
-    // ──────────────────────────────────────────────
-    //  Shared toggle logic
-    // ──────────────────────────────────────────────
-
-    private IImageCrossReference? FindXref(IWithImages entity, Guid imageUID)
-    {
-        var image = _imageManager.GetImageByID(imageUID);
-        if (image is null) return null;
-        // The entity's own link wins over one it only sees through a linked
-        // entity, since APIv3 only counts the own link as preferred.
-        return _imageManager.GetImageCrossReferencesForEntity(entity)
-            .Where(x => x.ImageID == image.ID)
-            .OrderByDescending(x => x.EntityID == entity.ID)
-            .FirstOrDefault();
-    }
-
-    private ActionResult ToggleXref(IWithImages entity, ToggleImageEnabledBody body)
-    {
-        // Every link the entity sees for the image, its own and its linked
-        // entities' alike: APIv3 reports an image as disabled only once all
-        // of its links are, so flipping just one would not show.
-        var image = _imageManager.GetImageByID(body.ImageUID);
-        var xrefs = image is null
-            ? []
-            : _imageManager.GetImageCrossReferencesForEntity(entity).Where(x => x.ImageID == image.ID).ToList();
-        if (xrefs.Count is 0)
-            return NotFound("Cross-reference not found for the given entity and image.");
-
-        foreach (var xref in xrefs)
-            _imageManager.UpdateImageCrossReference(xref, new ImageCrossReferenceUpdateData
-            {
-                IsEnabled = body.Enabled,
-            });
-
-        return NoContent();
-    }
-
-    // ──────────────────────────────────────────────
-    //  Unset Preferred — Series / Episode
-    // ──────────────────────────────────────────────
-
-    [HttpPost("Series/{seriesId}/Images/UnsetPreferred")]
-    public ActionResult UnsetSeriesImagePreferred(
-        [FromRoute] int seriesId,
-        [FromBody] UnsetPreferredImageBody body
-    )
-    {
-        if (seriesId <= 0)
-            return BadRequest("Series id must be a positive integer.");
-        var series = _metadataService.GetShokoSeriesByID(seriesId);
-        if (series is null)
-            return NotFound("Series not found.");
-        return UnsetPreferredXref(series, body);
-    }
-
-    [HttpPost("Episode/{episodeId}/Images/UnsetPreferred")]
-    public ActionResult UnsetEpisodeImagePreferred(
-        [FromRoute] int episodeId,
-        [FromBody] UnsetPreferredImageBody body
-    )
-    {
-        if (episodeId <= 0)
-            return BadRequest("Episode id must be a positive integer.");
-        var episode = _metadataService.GetShokoEpisodeByID(episodeId);
-        if (episode is null)
-            return NotFound("Episode not found.");
-        return UnsetPreferredXref(episode, body);
-    }
-
-    private ActionResult UnsetPreferredXref(IWithImages entity, UnsetPreferredImageBody body)
-    {
-        var xref = FindXref(entity, body.ImageUID);
-        if (xref is null)
-            return NotFound("Cross-reference not found for the given entity and image.");
-        if (!_imageManager.UnsetPreferredImageForEntity(xref))
-            return Problem("Failed to unset preferred image.", statusCode: 500);
-        return NoContent();
-    }
-
-    // ──────────────────────────────────────────────
     //  Request Parsing — Dual Mode
     // ──────────────────────────────────────────────
 
@@ -294,23 +166,3 @@ public class ImagesController : ControllerBase
     }
 }
 
-/// <summary>
-/// Request body for unsetting the preferred image for an entity.
-/// </summary>
-public class UnsetPreferredImageBody
-{
-    /// <summary>The GUID of the image to unset as preferred.</summary>
-    public Guid ImageUID { get; set; }
-}
-
-/// <summary>
-/// Request body for toggling a cross-reference-level image enabled flag.
-/// </summary>
-public class ToggleImageEnabledBody
-{
-    /// <summary>The GUID of the image.</summary>
-    public Guid ImageUID { get; set; }
-
-    /// <summary>The desired enabled state.</summary>
-    public bool Enabled { get; set; }
-}
