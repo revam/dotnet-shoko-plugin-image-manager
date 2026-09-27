@@ -3,9 +3,11 @@ using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Plugin.ImageManager.API.Controllers;
@@ -58,34 +60,7 @@ public class ImagesController : ControllerBase
         if (series is null)
             return NotFound("Series not found.");
 
-        var (stream, contentType, imageType, setPreferred) = ParseUploadRequest();
-
-        try
-        {
-            var image = _imageManager.UploadImage(stream, contentType, userSubmitted: true);
-
-            var xref = _imageManager.AddImageCrossReference(
-                series,
-                image,
-                new ImageCrossReferenceData
-                {
-                    ImageType = imageType,
-                    Source = DataSource.Plugin,
-                    IsEnabled = true,
-                    IsDesired = true,
-                    IsPreferred = setPreferred,
-                }
-            );
-
-            if (setPreferred)
-                _imageManager.SetPreferredImageForEntity(xref);
-
-            return Ok(image.ID);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        return UploadAndLink(series);
     }
 
     // ──────────────────────────────────────────────
@@ -106,24 +81,41 @@ public class ImagesController : ControllerBase
         if (episode is null)
             return NotFound("Episode not found.");
 
-        var (stream, contentType, imageType, setPreferred) = ParseUploadRequest();
+        return UploadAndLink(episode);
+    }
 
+    // ──────────────────────────────────────────────
+    //  Shared upload logic
+    // ──────────────────────────────────────────────
+
+    private ActionResult<Guid> UploadAndLink(IWithImages entity)
+    {
         try
         {
+            var (stream, contentType, imageType, setPreferred) = ParseUploadRequest();
             var image = _imageManager.UploadImage(stream, contentType, userSubmitted: true);
 
-            var xref = _imageManager.AddImageCrossReference(
-                episode,
-                image,
-                new ImageCrossReferenceData
-                {
-                    ImageType = imageType,
-                    Source = DataSource.Plugin,
-                    IsEnabled = true,
-                    IsDesired = true,
-                    IsPreferred = setPreferred,
-                }
-            );
+            IImageCrossReference xref;
+            try
+            {
+                xref = _imageManager.AddImageCrossReference(
+                    entity,
+                    image,
+                    new ImageCrossReferenceData
+                    {
+                        ImageType = imageType,
+                        Source = MetadataSource.User,
+                        IsEnabled = true,
+                        IsDesired = true,
+                        IsPreferred = setPreferred,
+                    }
+                );
+            }
+            catch (ImageCrossReferenceExistsException ex)
+            {
+                // The same image was uploaded for the entity before; reuse its link.
+                xref = ex.CrossReference;
+            }
 
             if (setPreferred)
                 _imageManager.SetPreferredImageForEntity(xref);
@@ -131,6 +123,10 @@ public class ImagesController : ControllerBase
             return Ok(image.ID);
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (UnsupportedImageTypeException ex)
         {
             return BadRequest(ex.Message);
         }
@@ -142,7 +138,7 @@ public class ImagesController : ControllerBase
 
     /// <summary>
     /// Toggle the cross-reference-level enabled flag for a series image.
-    /// Unlike <c>POST /api/v3/Image/…/Enabled</c> (which toggles the image globally),
+    /// Unlike <c>POST /api/v3/Image/Management/{imageID}/Enabled</c> (which toggles the image globally),
     /// this toggles the link between the series and the image only.
     /// </summary>
     [HttpPost("Series/{seriesId}/Images/Toggle")]

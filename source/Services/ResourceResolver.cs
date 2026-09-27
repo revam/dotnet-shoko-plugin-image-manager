@@ -3,7 +3,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Resources;
+using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Shoko;
 
 namespace Shoko.Plugin.ImageManager.Services;
