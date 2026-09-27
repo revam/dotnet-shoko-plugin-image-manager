@@ -31,7 +31,7 @@ public class ResourceResolver : IResourceResolver
                 {
                     Name = Name,
                     Type = ResourceType.CrossReference,
-                    Url = $"/api/plugin/ImageManager/Assets/dashboard?aid={anime.ID}",
+                    Url = $"/api/plugin/ImageManager/Assets/dashboard?aid={anime.AnidbID}",
                 },
             ],
             IShokoEpisode { Series.AnidbAnimeID: var anidbAnimeID } episode => [
@@ -47,7 +47,7 @@ public class ResourceResolver : IResourceResolver
                 {
                     Name = Name,
                     Type = ResourceType.CrossReference,
-                    Url = $"/api/plugin/ImageManager/Assets/dashboard?aid={episode.SeriesID}&eid={episode.ID}",
+                    Url = $"/api/plugin/ImageManager/Assets/dashboard?aid={episode.AnidbAnimeID}&eid={episode.AnidbID}",
                 },
             ],
             _ => [],
