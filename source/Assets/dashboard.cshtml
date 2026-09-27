@@ -835,6 +835,7 @@ async function apiDelete(url) {
 const els = {
   modeSeries: document.getElementById('modeSeries'),
   modeEpisode: document.getElementById('modeEpisode'),
+  seriesSearchWrap: document.getElementById('seriesSearchWrap'),
   seriesSearch: document.getElementById('seriesSearch'),
   seriesDropdown: document.getElementById('seriesDropdown'),
   selectedSeries: document.getElementById('selectedSeries'),
@@ -1091,7 +1092,7 @@ async function loadEpisodes(seriesId) {
     );
     const padding = String(maxCount).length;
 
-    const data = await apiGet(`/api/v3/Series/${seriesId}/Episode?pageSize=200&page=1&includeDataFrom=AniDB`);
+    const data = await apiGet(`/api/v3/Series/${seriesId}/Episode?pageSize=200&page=1&includeDataFrom=anidb`);
     const list = data.List || [];
     if (!list.length) {
       els.episodeSelect.innerHTML = '<option value="">No episodes found</option>';
@@ -1142,7 +1143,7 @@ async function loadImages() {
     if (state.mode === 'series') {
       url = `/api/v3/Series/${state.seriesId}/Images?includeDisabled=true`;
     } else {
-      url = `/api/v3/Episode/${state.episodeId}/Images`;
+      url = `/api/v3/Episode/${state.episodeId}/Images?includeDisabled=true`;
     }
     const data = await apiGet(url);
     state.images = {
@@ -1216,7 +1217,7 @@ function renderGrid() {
   els.imageGrid.innerHTML = filtered.map(img => {
     const isSelected = state.selectedImage && state.selectedImage.UID === img.UID;
     const cardClass = `image-card ${state.activeTab === 'Backdrops' ? 'backdrop' : ''} ${state.activeTab === 'Banners' ? 'banner' : ''} ${state.activeTab === 'Logos' ? 'logo' : ''} ${isSelected ? 'selected' : ''}`;
-    const src = `/api/v3/Image/${img.UID}`;
+    const src = imageSrc(img);
     const badges = [];
     if (img.Preferred) badges.push('<span class="badge badge-preferred">★ Preferred</span>');
     if (img.Disabled) badges.push('<span class="badge badge-disabled">Disabled</span>');
@@ -1262,7 +1263,7 @@ function renderPanel() {
     return;
   }
   const img = state.selectedImage;
-  const src = `/api/v3/Image/${img.UID}`;
+  const src = imageSrc(img);
   const dims = (img.Width && img.Height) ? `${img.Width} × ${img.Height}` : 'Unknown';
 
   els.panelContent.innerHTML = `
@@ -1302,7 +1303,7 @@ function renderPanel() {
       <button class="btn btn-secondary btn-block" id="btnToggle">
         ${img.Disabled ? 'Enable Image' : 'Disable Image'}
       </button>
-      ${img.Source === 'User' ? `<button class="btn btn-danger btn-block" id="btnDelete">Delete Image</button>` : ''}
+      ${String(img.Source).toLowerCase() === 'user' ? `<button class="btn btn-danger btn-block" id="btnDelete">Delete Image</button>` : ''}
       <a class="btn btn-secondary btn-block" href="${src}" target="_blank" rel="noopener">View Full Size</a>
     </div>
     <div class="hint">UID: ${img.UID}</div>
@@ -1327,7 +1328,7 @@ async function setPreferred(img) {
       await apiPost(`/api/plugin/ImageManager/${prefix}/${entityId}/Images/UnsetPreferred`, { imageUID: img.UID });
       showToast('Image unset as preferred', 'success');
     } else {
-      await apiPut(`/api/v3/${prefix}/${entityId}/Images/${img.Type}`, { ID: img.UID, Source: img.Source });
+      await apiPut(`/api/v3/${prefix}/${entityId}/Images/${img.Type}/Default`, { ID: img.UID });
       showToast('Image set as preferred', 'success');
     }
     await loadImages();
@@ -1352,7 +1353,7 @@ async function toggleEnabled(img) {
 
 function confirmDelete(img) {
   state.imageToDelete = img;
-  const src = `/api/v3/Image/${img.UID}`;
+  const src = imageSrc(img);
   els.deletePreview.src = src;
   els.deletePreview.classList.remove('hidden');
   els.deletePreview.onerror = () => els.deletePreview.classList.add('hidden');
@@ -1364,7 +1365,7 @@ els.deleteConfirm.addEventListener('click', async () => {
   if (!img) return;
   closeModal('deleteModal');
   try {
-    // Try management delete with the integer ID; backend may resolve it
+    // Purges the image and every link to it; only offered for user uploads.
     await apiDelete(`/api/v3/Image/Management/${img.UID}`);
     showToast('Image deleted', 'success');
     await loadImages();
@@ -1451,6 +1452,12 @@ function saveAuth() {
 /* =========================
    UTILS
    ========================= */
+// The server's copy when it holds one, else the source's own URL when the
+// server hands one out, so images that were never downloaded still show.
+function imageSrc(img) {
+  if (!img.Available && img.RemoteURL) return img.RemoteURL;
+  return `/api/v3/Image/${img.UID}`;
+}
 function escapeHtml(str) {
   if (str == null) return '';
   return String(str)
