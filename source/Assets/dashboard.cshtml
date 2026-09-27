@@ -1194,9 +1194,17 @@ function getGridCols(type) {
   return 'cols-4';
 }
 
+// Disabled for the selected entity: every link it sees the image through is
+// disabled. APIv3's `Disabled` is image-wide, so another entity's enabled link
+// keeps it false.
+function isDisabledHere(img) {
+  const xrefs = img.CrossReferences || [];
+  return xrefs.length ? xrefs.every(x => !x.IsEnabled) : !!img.Disabled;
+}
+
 function renderGrid() {
   const list = state.images[state.activeTab] || [];
-  const filtered = state.showDisabled ? list : list.filter(img => !img.Disabled);
+  const filtered = state.showDisabled ? list : list.filter(img => !isDisabledHere(img));
 
   els.imageGrid.className = `image-grid ${getGridCols(state.activeTab)}`;
 
@@ -1220,7 +1228,7 @@ function renderGrid() {
     const src = imageSrc(img);
     const badges = [];
     if (img.Preferred) badges.push('<span class="badge badge-preferred">★ Preferred</span>');
-    if (img.Disabled) badges.push('<span class="badge badge-disabled">Disabled</span>');
+    if (isDisabledHere(img)) badges.push('<span class="badge badge-disabled">Disabled</span>');
     if (state.showLang && img.LanguageCode) badges.push(`<span class="badge badge-lang">${escapeHtml(img.LanguageCode)}</span>`);
 
     return `
@@ -1265,6 +1273,7 @@ function renderPanel() {
   const img = state.selectedImage;
   const src = imageSrc(img);
   const dims = (img.Width && img.Height) ? `${img.Width} × ${img.Height}` : 'Unknown';
+  const disabled = isDisabledHere(img);
 
   els.panelContent.innerHTML = `
     <div class="info-row">
@@ -1289,7 +1298,7 @@ function renderPanel() {
     </div>
     <div class="info-row">
       <span class="info-label">Disabled</span>
-      <span class="info-value ${img.Disabled ? 'bool-no' : 'bool-yes'}">${img.Disabled ? 'Yes' : 'No'}</span>
+      <span class="info-value ${disabled ? 'bool-no' : 'bool-yes'}">${disabled ? 'Yes' : 'No'}</span>
     </div>
     ${img.LanguageCode ? `
     <div class="info-row">
@@ -1301,7 +1310,7 @@ function renderPanel() {
         ${img.Preferred ? 'Unset Preferred' : '★ Set As Preferred'}
       </button>
       <button class="btn btn-secondary btn-block" id="btnToggle">
-        ${img.Disabled ? 'Enable Image' : 'Disable Image'}
+        ${disabled ? 'Enable Image' : 'Disable Image'}
       </button>
       ${String(img.Source).toLowerCase() === 'user' ? `<button class="btn btn-danger btn-block" id="btnDelete">Delete Image</button>` : ''}
       <a class="btn btn-secondary btn-block" href="${src}" target="_blank" rel="noopener">View Full Size</a>
@@ -1346,9 +1355,9 @@ async function setPreferred(img) {
 }
 
 async function toggleEnabled(img) {
-  const enabled = !!img.Disabled; // if disabled, we want to enable
-  // Every link the entity sees the image through: APIv3 reports an image as
-  // disabled only once all of them are, so flipping just one would not show.
+  const enabled = isDisabledHere(img); // if disabled, we want to enable
+  // Flip every link the entity sees the image through, so the entity's view
+  // of it changes whatever other entities keep.
   const xrefs = (img.CrossReferences || []).filter(x => x.IsEnabled !== enabled);
   try {
     if (!img.CrossReferences?.length) throw new Error('no links for the image');
