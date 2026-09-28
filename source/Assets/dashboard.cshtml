@@ -818,8 +818,8 @@ async function apiPut(url, body) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res;
 }
-async function apiPatch(url, body) {
-  const res = await fetch(url, { method: 'PATCH', headers: apiHeaders(), body: JSON.stringify(body) });
+async function apiPost(url, body) {
+  const res = await fetch(url, { method: 'POST', headers: apiHeaders(), body: JSON.stringify(body) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res;
 }
@@ -1334,10 +1334,17 @@ function crossReferenceUrl(xref) {
   return `/api/v3/Image/Management/CrossReference/${xref.ID}`;
 }
 
-async function setPreferred(img) {
+// The selected series' or episode's own APIv3 image routes.
+function entityImagesUrl() {
   const entityId = state.mode === 'series' ? state.seriesId : state.episodeId;
-  if (!entityId) return;
+  if (!entityId) return null;
   const prefix = state.mode === 'series' ? 'Series' : 'Episode';
+  return `/api/v3/${prefix}/${entityId}/Images`;
+}
+
+async function setPreferred(img) {
+  const imagesUrl = entityImagesUrl();
+  if (!imagesUrl) return;
   try {
     if (img.Preferred) {
       const xref = (img.CrossReferences || []).find(x => x.IsPreferred);
@@ -1345,7 +1352,7 @@ async function setPreferred(img) {
       await apiDelete(`${crossReferenceUrl(xref)}/Preferred`);
       showToast('Image unset as preferred', 'success');
     } else {
-      await apiPut(`/api/v3/${prefix}/${entityId}/Images/${img.Type}/Default`, { ID: img.UID });
+      await apiPut(`${imagesUrl}/${img.Type}/Default`, { ID: img.UID });
       showToast('Image set as preferred', 'success');
     }
     await loadImages();
@@ -1355,13 +1362,13 @@ async function setPreferred(img) {
 }
 
 async function toggleEnabled(img) {
+  const imagesUrl = entityImagesUrl();
+  if (!imagesUrl) return;
   const enabled = isDisabledHere(img); // if disabled, we want to enable
-  // Flip every link the entity sees the image through, so the entity's view
-  // of it changes whatever other entities keep.
-  const xrefs = (img.CrossReferences || []).filter(x => x.IsEnabled !== enabled);
   try {
-    if (!img.CrossReferences?.length) throw new Error('no links for the image');
-    await Promise.all(xrefs.map(x => apiPatch(crossReferenceUrl(x), { IsEnabled: enabled })));
+    // The server flips every link the entity sees the image through, so the
+    // entity's view of it changes whatever other entities keep.
+    await apiPost(`${imagesUrl}/${img.Type}/${img.UID}/Enabled`, { Enabled: enabled });
     showToast(enabled ? 'Image enabled' : 'Image disabled', 'success');
     await loadImages();
   } catch (err) {
@@ -1408,15 +1415,15 @@ els.uploadSubmit.addEventListener('click', async () => {
   const file = els.uploadFile.files[0];
   if (!file) { showToast('Please select a file', 'error'); return; }
 
+  const imagesUrl = entityImagesUrl();
+  if (!imagesUrl) return;
+
+  // APIv3 links the upload to the entity as a user image, and makes it the
+  // preferred one of its type when asked.
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('imageType', els.uploadType.value);
-  formData.append('setPreferred', els.uploadPreferred.checked ? 'true' : 'false');
-
-  const entityId = state.mode === 'series' ? state.seriesId : state.episodeId;
-  const url = state.mode === 'series'
-    ? `/api/plugin/ImageManager/Series/${entityId}/Upload`
-    : `/api/plugin/ImageManager/Episode/${entityId}/Upload`;
+  const preferred = els.uploadPreferred.checked ? 'true' : 'false';
+  const url = `${imagesUrl}/${encodeURIComponent(els.uploadType.value)}/Upload?preferred=${preferred}`;
 
   closeModal('uploadModal');
   try {

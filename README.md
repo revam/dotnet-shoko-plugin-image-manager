@@ -30,9 +30,20 @@ A [Shoko](https://shokoanime.com/) plugin for uploading and managing images for 
 2. Extract the `.dll` into your Shoko `plugins` directory.
 3. Restart Shoko.
 
-## API Reference
+## API
 
-Open `http://&lt;shoko hostname&gt;:8111/swagger` in your browser and select **Image Manager V1** from the server dropdown in the top-right corner to explore and test all available endpoints.
+The plugin adds no endpoints of its own besides serving the dashboard at `/api/plugin/ImageManager/Assets/dashboard`. The dashboard talks to Shoko's APIv3 directly:
+
+| Action | Route |
+|---|---|
+| List images | `GET /api/v3/{Series\|Episode}/{id}/Images` |
+| Upload, optionally as preferred | `POST /api/v3/{Series\|Episode}/{id}/Images/{imageType}/Upload?preferred=true` (multipart form, field `file`) |
+| Set as preferred | `PUT /api/v3/{Series\|Episode}/{id}/Images/{imageType}/Default` |
+| Unset as preferred | `DELETE /api/v3/Image/Management/CrossReference/{linkID}/Preferred` |
+| Enable or disable | `POST /api/v3/{Series\|Episode}/{id}/Images/{imageType}/{imageID}/Enabled` |
+| Delete an upload | `DELETE /api/v3/Image/Management/{imageID}` |
+
+Enabling or disabling an image changes every link the series or episode sees it through, including a link on an entry it is linked to, such as a TMDB show, so the change shows everywhere that link does.
 
 ## Building from Source
 
