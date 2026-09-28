@@ -26,7 +26,6 @@ public class Plugin : IPlugin, IPluginServiceRegistration
         IApplicationPaths applicationPaths
     )
     {
-        // No additional services needed — IImageManager and IMetadataService
-        // are provided by the Shoko host and injected into controllers directly.
+        // No services needed; the dashboard calls the server's APIv3 image routes.
     }
 }
