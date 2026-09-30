@@ -14,6 +14,22 @@
   ],
   "releases": [
     {
+      "version": "1.1.0",
+      "tag": "v1.1.0",
+      "released_at": "2026-09-30T16:38:26.1855829Z",
+      "channel": "Stable",
+      "release_notes": "The dashboard now works against the abstractions \u00606.0.0-alpha.95\u0060 release and talks to Shoko\u0027s APIv3 image routes directly. Setting a preferred image, uploading (optionally as preferred), and enabling or disabling an image all go through APIv3, and the plugin\u0027s own upload, toggle and unset-preferred endpoints under \u0060/api/plugin/ImageManager\u0060 are gone. Enabling or disabling an image now changes every link the series or episode sees it through, so an image disabled on one series can be enabled there again, and its state is read from those links rather than from the image as a whole. Disabled episode images are listed so they can be enabled again, an image the server holds no copy of is shown from its remote URL, and the script error the dashboard threw on every click is fixed.\n\nRequires Shoko Server with abstractions \u00606.0.0-alpha.95\u0060.",
+      "dependencies": [],
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/revam/dotnet-shoko-plugin-image-manager/releases/download/v1.1.0/ImageManager-v1.1.0-any.zip",
+          "checksum": "sha256:02cd77897ad52b9500d9149a8c76f7f0c8040f339cab1d1a2e48a1ac278a6585"
+        }
+      ]
+    },
+    {
       "version": "1.0.1",
       "tag": "v1.0.1",
       "released_at": "2026-09-18T04:41:08.9541809Z",
