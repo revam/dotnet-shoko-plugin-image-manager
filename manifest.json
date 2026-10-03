@@ -14,6 +14,22 @@
   ],
   "releases": [
     {
+      "version": "1.1.1",
+      "tag": "v1.1.1",
+      "released_at": "2026-10-03T16:54:00.9988897Z",
+      "channel": "Stable",
+      "release_notes": "Rebuilt against the abstractions \u00606.0.0-alpha.98\u0060 release. The dashboard works as before.\n\nRequires Shoko Server with abstractions \u00606.0.0-alpha.98\u0060.",
+      "dependencies": [],
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/revam/dotnet-shoko-plugin-image-manager/releases/download/v1.1.1/ImageManager-v1.1.1-any.zip",
+          "checksum": "sha256:ea1898fdd45ed3d7c6c1bd3414375ecd37a41f696e5676fc9ef87e40bfd22e25"
+        }
+      ]
+    },
+    {
       "version": "1.1.0",
       "tag": "v1.1.0",
       "released_at": "2026-09-30T16:38:26.1855829Z",
