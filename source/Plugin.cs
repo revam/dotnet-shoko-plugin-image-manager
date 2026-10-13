@@ -11,6 +11,8 @@ public class Plugin : IPlugin, IPluginServiceRegistration
     public Guid ID { get; } = new("0bb96da1-c996-44a3-9ddb-27961cce0c4d");
     public string Name { get; } = "Image Manager";
     public string Description { get; } = "Upload and manage images for Shoko series and episodes.";
+    public string? EmbeddedThumbnailResourceName => "Shoko.Plugin.ImageManager.Assets.thumbnail.svg";
+    public string? EmbeddedIconResourceName => "Shoko.Plugin.ImageManager.Assets.icon.svg";
 
     public IReadOnlyList<PluginPage> GetPages() =>
     [
