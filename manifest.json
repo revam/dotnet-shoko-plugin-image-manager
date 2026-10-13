@@ -12,9 +12,23 @@
     "series",
     "episode"
   ],
-  "thumbnail_url": "https://raw.githubusercontent.com/revam/dotnet-shoko-plugin-image-manager/stable/source/Assets/thumbnail.svg",
-  "icon_url": "https://raw.githubusercontent.com/revam/dotnet-shoko-plugin-image-manager/stable/source/Assets/icon.svg",
   "releases": [
+    {
+      "version": "1.1.4",
+      "tag": "v1.1.4",
+      "released_at": "2026-10-13T23:50:46.8433598Z",
+      "channel": "Stable",
+      "release_notes": "Added a thumbnail and an icon for the plugin. Nothing else changed.\n\nRequires Shoko Server with abstractions \u00606.0.0-alpha.104\u0060.",
+      "dependencies": [],
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/revam/dotnet-shoko-plugin-image-manager/releases/download/v1.1.4/ImageManager-v1.1.4-any.zip",
+          "checksum": "sha256:059d7a32e561476a67e4d41654bd338823753c4c54d388e5065c19b8114fef1a"
+        }
+      ]
+    },
     {
       "version": "1.1.3",
       "tag": "v1.1.3",
@@ -110,5 +124,7 @@
         }
       ]
     }
-  ]
+  ],
+  "thumbnail_url": "https://raw.githubusercontent.com/revam/dotnet-shoko-plugin-image-manager/stable/source/Assets/thumbnail.svg",
+  "icon_url": "https://raw.githubusercontent.com/revam/dotnet-shoko-plugin-image-manager/stable/source/Assets/icon.svg"
 }
